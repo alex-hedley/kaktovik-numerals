@@ -1,0 +1,9 @@
+@font-face {
+  font-family: "Unifont-Upper";
+  src: url("../fonts/unifont_upper-15.0.01.ttf") format('truetype');
+}
+
+table {
+  font-family: Unifont-Upper;
+  font-size: 100px;
+}
