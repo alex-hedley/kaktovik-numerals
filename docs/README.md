@@ -6,6 +6,7 @@
 
 - [Unicode request for Kaktovik numerals](21058-kaktovik-numerals.pdf)
   - [Site](http://www.unicode.org/L2/L2021/21058-kaktovik-numerals.pdf)
+- [Kaktovik Numerals - Unicode v15](U1D2C0.pdf)
 
 ## Wikipedia
 
