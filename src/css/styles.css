@@ -6,4 +6,16 @@
 table {
   font-family: Unifont-Upper;
   font-size: 100px;
+  text-align: center;
+  /* vertical-align: middle; */
+}
+
+th {
+  font-size: 20px;
+}
+
+tr:nth-child(2) {
+  font-size: small;
+  text-align: center;
+  /* vertical-align: middle; */
 }
