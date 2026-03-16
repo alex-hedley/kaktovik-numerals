@@ -315,6 +315,23 @@
 
         </div>
 
+        <hr />
+
+        <h2>Examples</h2>
+        <p>Pre-computed examples showing Kaktovik (base-20) results alongside decimal equivalents.</p>
+
+        <h3>Addition</h3>
+        <div id="examples-add"></div>
+
+        <h3>Subtraction</h3>
+        <div id="examples-sub"></div>
+
+        <h3>Simple Division</h3>
+        <div id="examples-div"></div>
+
+        <h3>Long Division</h3>
+        <div id="examples-ldiv"></div>
+
     </main>
 
     <footer class="footer">
@@ -407,6 +424,101 @@
                 document.getElementById(resultId).innerHTML = '<span class="error">' + e.message + '</span>';
             }
         }
+
+        function buildExamplesTable(rows) {
+            let html = '<table class="examples-table"><thead><tr>';
+            html += '<th>Expression</th><th>Kaktovik</th><th>Decimal</th>';
+            html += '</tr></thead><tbody>';
+            rows.forEach(function(row) {
+                html += '<tr>';
+                html += '<td class="expr-cell">' + row.expr + '</td>';
+                html += '<td>' + row.kak + '</td>';
+                html += '<td><small>' + row.dec + '</small></td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function renderExamples() {
+            // Addition examples
+            const addExamples = [
+                [3, 5], [8, 12], [15, 8], [19, 1], [25, 17], [100, 300], [399, 1]
+            ].map(function(p) {
+                const r = add(p[0], p[1]);
+                return {
+                    expr: p[0] + ' + ' + p[1],
+                    kak: kakStr(p[0]) + ' + ' + kakStr(p[1]) + ' = ' + kakStr(r),
+                    dec: p[0] + ' + ' + p[1] + ' = ' + r
+                };
+            });
+            document.getElementById('examples-add').innerHTML = buildExamplesTable(addExamples);
+
+            // Subtraction examples
+            const subExamples = [
+                [8, 3], [20, 1], [23, 8], [42, 17], [100, 60], [400, 380], [8000, 400]
+            ].map(function(p) {
+                const r = subtract(p[0], p[1]);
+                return {
+                    expr: p[0] + ' − ' + p[1],
+                    kak: kakStr(p[0]) + ' − ' + kakStr(p[1]) + ' = ' + kakStr(r),
+                    dec: p[0] + ' − ' + p[1] + ' = ' + r
+                };
+            });
+            document.getElementById('examples-sub').innerHTML = buildExamplesTable(subExamples);
+
+            // Simple division examples
+            const divExamples = [
+                [20, 4], [20, 3], [42, 2], [400, 20], [45, 7], [441, 21], [8000, 400]
+            ].map(function(p) {
+                const r = divide(p[0], p[1]);
+                const remStr = r.remainder > 0 ? ' r ' + r.remainder : '';
+                const remKak = r.remainder > 0 ? ' r ' + kakStr(r.remainder) : '';
+                return {
+                    expr: p[0] + ' ÷ ' + p[1],
+                    kak: kakStr(p[0]) + ' ÷ ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak,
+                    dec: p[0] + ' ÷ ' + p[1] + ' = ' + r.quotient + remStr
+                };
+            });
+            document.getElementById('examples-div').innerHTML = buildExamplesTable(divExamples);
+
+            // Long division examples — rendered as step tables
+            const ldivExamples = [[400, 20], [8400, 20], [441, 21], [399, 19]];
+            let ldivHtml = '';
+            ldivExamples.forEach(function(p) {
+                const r = longDivide(p[0], p[1]);
+                const remStr = r.remainder > 0 ? ' remainder ' + r.remainder : '';
+                const remKak = r.remainder > 0 ? ' remainder ' + kakStr(r.remainder) : '';
+                ldivHtml += '<div class="ldiv-example">';
+                ldivHtml += '<p class="ldiv-title">';
+                ldivHtml += kakStr(p[0]) + ' ÷ ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak;
+                ldivHtml += '<br><small>(' + p[0] + ' ÷ ' + p[1] + ' = ' + r.quotient + remStr + ')</small>';
+                ldivHtml += '</p>';
+                ldivHtml += '<table class="long-division"><thead><tr>';
+                ldivHtml += '<th>Partial Dividend</th><th>Quotient Digit</th><th>× Divisor</th><th>Remainder</th>';
+                ldivHtml += '</tr></thead><tbody>';
+                r.steps.forEach(function(step) {
+                    ldivHtml += '<tr>';
+                    ldivHtml += '<td>' + kakStr(step.partialDividend) + '<br><small>' + step.partialDividend + '</small></td>';
+                    ldivHtml += '<td>' + kakStr(step.quotientDigit) + '<br><small>' + step.quotientDigit + '</small></td>';
+                    ldivHtml += '<td>' + kakStr(step.product) + '<br><small>' + step.product + '</small></td>';
+                    ldivHtml += '<td>' + kakStr(step.remainder) + '<br><small>' + step.remainder + '</small></td>';
+                    ldivHtml += '</tr>';
+                });
+                ldivHtml += '</tbody></table></div>';
+            });
+            document.getElementById('examples-ldiv').innerHTML = ldivHtml;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-run all four calculators with their default values
+            calculate('add');
+            calculate('sub');
+            calculate('div');
+            calculate('ldiv');
+            // Render pre-computed examples
+            renderExamples();
+        });
     </script>
   </body>
 </html>
