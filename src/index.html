@@ -262,6 +262,59 @@
             <!-- <tfoot></tfoot> -->
         </table>
 
+        <hr />
+
+        <h2>Arithmetic</h2>
+        <p>Enter decimal numbers below. Results are displayed in Kaktovik (base-20) numerals.</p>
+
+        <div class="arithmetic">
+
+            <div class="operation-group">
+                <h3>Addition</h3>
+                <div class="inputs">
+                    <input type="number" id="add-a" placeholder="A" min="0" value="25" />
+                    <span class="operator">+</span>
+                    <input type="number" id="add-b" placeholder="B" min="0" value="17" />
+                    <button onclick="calculate('add')">Calculate</button>
+                </div>
+                <div id="add-result" class="result"></div>
+            </div>
+
+            <div class="operation-group">
+                <h3>Subtraction</h3>
+                <div class="inputs">
+                    <input type="number" id="sub-a" placeholder="A" min="0" value="42" />
+                    <span class="operator">−</span>
+                    <input type="number" id="sub-b" placeholder="B" min="0" value="17" />
+                    <button onclick="calculate('sub')">Calculate</button>
+                </div>
+                <div id="sub-result" class="result"></div>
+            </div>
+
+            <div class="operation-group">
+                <h3>Simple Division</h3>
+                <div class="inputs">
+                    <input type="number" id="div-a" placeholder="Dividend" min="0" value="400" />
+                    <span class="operator">÷</span>
+                    <input type="number" id="div-b" placeholder="Divisor" min="1" value="20" />
+                    <button onclick="calculate('div')">Calculate</button>
+                </div>
+                <div id="div-result" class="result"></div>
+            </div>
+
+            <div class="operation-group">
+                <h3>Long Division</h3>
+                <div class="inputs">
+                    <input type="number" id="ldiv-a" placeholder="Dividend" min="0" value="8400" />
+                    <span class="operator">÷</span>
+                    <input type="number" id="ldiv-b" placeholder="Divisor" min="1" value="20" />
+                    <button onclick="calculate('ldiv')">Calculate</button>
+                </div>
+                <div id="ldiv-result" class="result"></div>
+            </div>
+
+        </div>
+
     </main>
 
     <footer class="footer">
@@ -270,6 +323,90 @@
       </div>
     </footer>
 
+    <script src="js/kaktovik.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        function kakStr(n) {
+            return '<span class="kaktovik">' + numberToKaktovik(n) + '</span>';
+        }
+
+        function calculate(op) {
+            let a, b, result, html;
+            try {
+                if (op === 'add') {
+                    a = parseInt(document.getElementById('add-a').value, 10);
+                    b = parseInt(document.getElementById('add-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 0) throw new Error('Enter non-negative integers.');
+                    result = add(a, b);
+                    html = kakStr(a) + ' + ' + kakStr(b) + ' = ' + kakStr(result);
+                    html += '<br><small>(' + a + ' + ' + b + ' = ' + result + ')</small>';
+                    document.getElementById('add-result').innerHTML = html;
+
+                } else if (op === 'sub') {
+                    a = parseInt(document.getElementById('sub-a').value, 10);
+                    b = parseInt(document.getElementById('sub-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 0) throw new Error('Enter non-negative integers.');
+                    if (a < b) throw new Error('Result would be negative. Enter A ≥ B.');
+                    result = subtract(a, b);
+                    html = kakStr(a) + ' − ' + kakStr(b) + ' = ' + kakStr(result);
+                    html += '<br><small>(' + a + ' − ' + b + ' = ' + result + ')</small>';
+                    document.getElementById('sub-result').innerHTML = html;
+
+                } else if (op === 'div') {
+                    a = parseInt(document.getElementById('div-a').value, 10);
+                    b = parseInt(document.getElementById('div-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 1) throw new Error('Enter valid numbers (divisor ≥ 1).');
+                    const divResult = divide(a, b);
+                    html = kakStr(a) + ' ÷ ' + kakStr(b) + ' = ' + kakStr(divResult.quotient);
+                    if (divResult.remainder > 0) {
+                        html += ' remainder ' + kakStr(divResult.remainder);
+                        html += '<br><small>(' + a + ' ÷ ' + b + ' = ' + divResult.quotient + ' remainder ' + divResult.remainder + ')</small>';
+                    } else {
+                        html += '<br><small>(' + a + ' ÷ ' + b + ' = ' + divResult.quotient + ')</small>';
+                    }
+                    document.getElementById('div-result').innerHTML = html;
+
+                } else if (op === 'ldiv') {
+                    a = parseInt(document.getElementById('ldiv-a').value, 10);
+                    b = parseInt(document.getElementById('ldiv-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 1) throw new Error('Enter valid numbers (divisor ≥ 1).');
+                    const ldivResult = longDivide(a, b);
+
+                    html = '<p>' + kakStr(a) + ' ÷ ' + kakStr(b) + ' = ' + kakStr(ldivResult.quotient);
+                    if (ldivResult.remainder > 0) {
+                        html += ' remainder ' + kakStr(ldivResult.remainder);
+                    }
+                    html += '</p>';
+                    html += '<small>(' + a + ' ÷ ' + b + ' = ' + ldivResult.quotient;
+                    if (ldivResult.remainder > 0) html += ' remainder ' + ldivResult.remainder;
+                    html += ')</small>';
+
+                    html += '<table class="long-division">';
+                    html += '<thead><tr>';
+                    html += '<th>Partial Dividend</th>';
+                    html += '<th>Quotient Digit</th>';
+                    html += '<th>× Divisor</th>';
+                    html += '<th>Remainder</th>';
+                    html += '</tr></thead><tbody>';
+                    ldivResult.steps.forEach(function(step) {
+                        html += '<tr>';
+                        html += '<td>' + kakStr(step.partialDividend) + '<br><small>' + step.partialDividend + '</small></td>';
+                        html += '<td>' + kakStr(step.quotientDigit) + '<br><small>' + step.quotientDigit + '</small></td>';
+                        html += '<td>' + kakStr(step.product) + '<br><small>' + step.product + '</small></td>';
+                        html += '<td>' + kakStr(step.remainder) + '<br><small>' + step.remainder + '</small></td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+
+                    document.getElementById('ldiv-result').innerHTML = html;
+                }
+            } catch (e) {
+                const resultId = op === 'add' ? 'add-result' :
+                               op === 'sub' ? 'sub-result' :
+                               op === 'div' ? 'div-result' : 'ldiv-result';
+                document.getElementById(resultId).innerHTML = '<span class="error">' + e.message + '</span>';
+            }
+        }
+    </script>
   </body>
 </html>
