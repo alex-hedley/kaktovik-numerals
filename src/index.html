@@ -264,6 +264,76 @@
             <!-- <tfoot></tfoot> -->
         </table>
 
+        <hr />
+
+        <h2>Arithmetic</h2>
+        <p>Enter decimal numbers below. Results are displayed in Kaktovik (base-20) numerals.</p>
+
+        <div class="arithmetic">
+
+            <div class="operation-group">
+                <h3>Addition</h3>
+                <div class="inputs">
+                    <input type="number" id="add-a" placeholder="A" min="0" value="25" />
+                    <span class="operator">+</span>
+                    <input type="number" id="add-b" placeholder="B" min="0" value="17" />
+                    <button onclick="calculate('add')">Calculate</button>
+                </div>
+                <div id="add-result" class="result"></div>
+            </div>
+
+            <div class="operation-group">
+                <h3>Subtraction</h3>
+                <div class="inputs">
+                    <input type="number" id="sub-a" placeholder="A" min="0" value="42" />
+                    <span class="operator">−</span>
+                    <input type="number" id="sub-b" placeholder="B" min="0" value="17" />
+                    <button onclick="calculate('sub')">Calculate</button>
+                </div>
+                <div id="sub-result" class="result"></div>
+            </div>
+
+            <div class="operation-group">
+                <h3>Simple Division</h3>
+                <div class="inputs">
+                    <input type="number" id="div-a" placeholder="Dividend" min="0" value="400" />
+                    <span class="operator">÷</span>
+                    <input type="number" id="div-b" placeholder="Divisor" min="1" value="20" />
+                    <button onclick="calculate('div')">Calculate</button>
+                </div>
+                <div id="div-result" class="result"></div>
+            </div>
+
+            <div class="operation-group">
+                <h3>Long Division</h3>
+                <div class="inputs">
+                    <input type="number" id="ldiv-a" placeholder="Dividend" min="0" value="8400" />
+                    <span class="operator">÷</span>
+                    <input type="number" id="ldiv-b" placeholder="Divisor" min="1" value="20" />
+                    <button onclick="calculate('ldiv')">Calculate</button>
+                </div>
+                <div id="ldiv-result" class="result"></div>
+            </div>
+
+        </div>
+
+        <hr />
+
+        <h2>Examples</h2>
+        <p>Pre-computed examples showing Kaktovik (base-20) results alongside decimal equivalents.</p>
+
+        <h3>Addition</h3>
+        <div id="examples-add"></div>
+
+        <h3>Subtraction</h3>
+        <div id="examples-sub"></div>
+
+        <h3>Simple Division</h3>
+        <div id="examples-div"></div>
+
+        <h3>Long Division</h3>
+        <div id="examples-ldiv"></div>
+
     </main>
 
     <footer class="footer">
@@ -272,6 +342,276 @@
       </div>
     </footer>
 
+    <script src="js/kaktovik.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        function kakStr(n) {
+            return '<span class="kaktovik">' + numberToKaktovik(n) + '</span>';
+        }
+
+        // === SVG coloured rendering helpers ===
+
+        // teal (#00a1a4) for pure multiples of 5 (5, 10, 15); purple (#9e2194) for all other non-zero digits
+        function digitColor(d) {
+            if (d === 0) return '#555';
+            return d % 5 === 0 ? '#00a1a4' : '#9e2194';
+        }
+
+        // Approximate pixel dimensions of each Kaktovik digit SVG (all share the same height)
+        const SVG_DIGIT_WIDTH = 34;
+        const SVG_DIGIT_HEIGHT = 53;
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+
+        const _svgCache = {};
+        async function fetchSVGText(d) {
+            if (_svgCache[d] !== undefined) return _svgCache[d];
+            const res = await fetch('images/digits/Kaktovik_digit_' + d + '.svg');
+            if (!res.ok) throw new Error('Failed to load SVG for digit ' + d);
+            _svgCache[d] = await res.text();
+            return _svgCache[d];
+        }
+
+        async function numberToColoredSVG(n) {
+            const digits = [];
+            if (n === 0) { digits.push(0); }
+            else { let x = n; while (x > 0) { digits.unshift(x % 20); x = Math.floor(x / 20); } }
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + (digits.length * SVG_DIGIT_WIDTH) + ' ' + SVG_DIGIT_HEIGHT);
+            svg.classList.add('svg-kak');
+            for (let i = 0; i < digits.length; i++) {
+                const d = digits[i];
+                const parsed = new DOMParser().parseFromString(await fetchSVGText(d), 'image/svg+xml');
+                const parseErr = parsed.querySelector('parsererror');
+                if (parseErr) throw new Error('SVG parse error for digit ' + d);
+                const g = document.createElementNS(SVG_NS, 'g');
+                g.setAttribute('transform', 'translate(' + (i * SVG_DIGIT_WIDTH) + ',0)');
+                const color = digitColor(d);
+                parsed.querySelectorAll('path').forEach(function(p) {
+                    const path = document.createElementNS(SVG_NS, 'path');
+                    path.setAttribute('d', p.getAttribute('d'));
+                    path.style.fill = color;
+                    path.style.stroke = color;
+                    g.appendChild(path);
+                });
+                svg.appendChild(g);
+            }
+            return svg;
+        }
+
+        // Fills every element with class svg-cell (data-nums / data-ops attributes) with coloured SVGs
+        async function renderSVGCells() {
+            const cells = Array.from(document.querySelectorAll('.svg-cell'));
+            for (const cell of cells) {
+                try {
+                    const nums = JSON.parse(cell.dataset.nums);
+                    const ops  = JSON.parse(cell.dataset.ops);
+                    const wrap = document.createElement('span');
+                    wrap.className = 'svg-expr';
+                    for (let i = 0; i < nums.length; i++) {
+                        if (i > 0) {
+                            const sp = document.createElement('span');
+                            sp.className = 'svg-op';
+                            sp.textContent = ops[i - 1];
+                            wrap.appendChild(sp);
+                        }
+                        wrap.appendChild(await numberToColoredSVG(nums[i]));
+                    }
+                    cell.innerHTML = '';
+                    cell.appendChild(wrap);
+                } catch (e) {
+                    cell.textContent = '';
+                }
+            }
+        }
+
+        function calculate(op) {
+            let a, b, result, html;
+            try {
+                if (op === 'add') {
+                    a = parseInt(document.getElementById('add-a').value, 10);
+                    b = parseInt(document.getElementById('add-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 0) throw new Error('Enter non-negative integers.');
+                    result = add(a, b);
+                    html = kakStr(a) + ' + ' + kakStr(b) + ' = ' + kakStr(result);
+                    html += '<br><small>(' + a + ' + ' + b + ' = ' + result + ')</small>';
+                    document.getElementById('add-result').innerHTML = html;
+
+                } else if (op === 'sub') {
+                    a = parseInt(document.getElementById('sub-a').value, 10);
+                    b = parseInt(document.getElementById('sub-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 0) throw new Error('Enter non-negative integers.');
+                    if (a < b) throw new Error('Result would be negative. Enter A ≥ B.');
+                    result = subtract(a, b);
+                    html = kakStr(a) + ' − ' + kakStr(b) + ' = ' + kakStr(result);
+                    html += '<br><small>(' + a + ' − ' + b + ' = ' + result + ')</small>';
+                    document.getElementById('sub-result').innerHTML = html;
+
+                } else if (op === 'div') {
+                    a = parseInt(document.getElementById('div-a').value, 10);
+                    b = parseInt(document.getElementById('div-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 1) throw new Error('Enter valid numbers (divisor ≥ 1).');
+                    const divResult = divide(a, b);
+                    html = kakStr(a) + ' ÷ ' + kakStr(b) + ' = ' + kakStr(divResult.quotient);
+                    if (divResult.remainder > 0) {
+                        html += ' remainder ' + kakStr(divResult.remainder);
+                        html += '<br><small>(' + a + ' ÷ ' + b + ' = ' + divResult.quotient + ' remainder ' + divResult.remainder + ')</small>';
+                    } else {
+                        html += '<br><small>(' + a + ' ÷ ' + b + ' = ' + divResult.quotient + ')</small>';
+                    }
+                    document.getElementById('div-result').innerHTML = html;
+
+                } else if (op === 'ldiv') {
+                    a = parseInt(document.getElementById('ldiv-a').value, 10);
+                    b = parseInt(document.getElementById('ldiv-b').value, 10);
+                    if (isNaN(a) || isNaN(b) || a < 0 || b < 1) throw new Error('Enter valid numbers (divisor ≥ 1).');
+                    const ldivResult = longDivide(a, b);
+
+                    html = '<p>' + kakStr(a) + ' ÷ ' + kakStr(b) + ' = ' + kakStr(ldivResult.quotient);
+                    if (ldivResult.remainder > 0) {
+                        html += ' remainder ' + kakStr(ldivResult.remainder);
+                    }
+                    html += '</p>';
+                    html += '<small>(' + a + ' ÷ ' + b + ' = ' + ldivResult.quotient;
+                    if (ldivResult.remainder > 0) html += ' remainder ' + ldivResult.remainder;
+                    html += ')</small>';
+
+                    html += '<table class="long-division">';
+                    html += '<thead><tr>';
+                    html += '<th>Partial Dividend</th>';
+                    html += '<th>Quotient Digit</th>';
+                    html += '<th>× Divisor</th>';
+                    html += '<th>Remainder</th>';
+                    html += '</tr></thead><tbody>';
+                    ldivResult.steps.forEach(function(step) {
+                        html += '<tr>';
+                        html += '<td>' + kakStr(step.partialDividend) + '<br><small>' + step.partialDividend + '</small></td>';
+                        html += '<td>' + kakStr(step.quotientDigit) + '<br><small>' + step.quotientDigit + '</small></td>';
+                        html += '<td>' + kakStr(step.product) + '<br><small>' + step.product + '</small></td>';
+                        html += '<td>' + kakStr(step.remainder) + '<br><small>' + step.remainder + '</small></td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+
+                    document.getElementById('ldiv-result').innerHTML = html;
+                }
+            } catch (e) {
+                const resultId = op === 'add' ? 'add-result' :
+                               op === 'sub' ? 'sub-result' :
+                               op === 'div' ? 'div-result' : 'ldiv-result';
+                document.getElementById(resultId).innerHTML = '<span class="error">' + e.message + '</span>';
+            }
+        }
+
+        function buildExamplesTable(rows) {
+            let html = '<table class="examples-table"><thead><tr>';
+            html += '<th>Expression</th><th>Kaktovik (font)</th><th>Kaktovik (SVG)</th><th>Decimal</th>';
+            html += '</tr></thead><tbody>';
+            rows.forEach(function(row) {
+                html += '<tr>';
+                html += '<td class="expr-cell">' + row.expr + '</td>';
+                html += '<td>' + row.kak + '</td>';
+                html += '<td class="svg-cell" data-nums=\'' + JSON.stringify(row.nums) + '\' data-ops=\'' + JSON.stringify(row.ops) + '\'>…</td>';
+                html += '<td><small>' + row.dec + '</small></td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function renderExamples() {
+            // Addition examples
+            const addExamples = [
+                [3, 5], [8, 12], [15, 8], [19, 1], [25, 17], [100, 300], [399, 1]
+            ].map(function(p) {
+                const r = add(p[0], p[1]);
+                return {
+                    expr: p[0] + ' + ' + p[1],
+                    kak: kakStr(p[0]) + ' + ' + kakStr(p[1]) + ' = ' + kakStr(r),
+                    dec: p[0] + ' + ' + p[1] + ' = ' + r,
+                    nums: [p[0], p[1], r],
+                    ops: [' + ', ' = ']
+                };
+            });
+            document.getElementById('examples-add').innerHTML = buildExamplesTable(addExamples);
+
+            // Subtraction examples
+            const subExamples = [
+                [8, 3], [20, 1], [23, 8], [42, 17], [100, 60], [400, 380], [8000, 400]
+            ].map(function(p) {
+                const r = subtract(p[0], p[1]);
+                return {
+                    expr: p[0] + ' \u2212 ' + p[1],
+                    kak: kakStr(p[0]) + ' \u2212 ' + kakStr(p[1]) + ' = ' + kakStr(r),
+                    dec: p[0] + ' \u2212 ' + p[1] + ' = ' + r,
+                    nums: [p[0], p[1], r],
+                    ops: [' \u2212 ', ' = ']
+                };
+            });
+            document.getElementById('examples-sub').innerHTML = buildExamplesTable(subExamples);
+
+            // Simple division examples
+            const divExamples = [
+                [20, 4], [20, 3], [42, 2], [400, 20], [45, 7], [441, 21], [8000, 400]
+            ].map(function(p) {
+                const r = divide(p[0], p[1]);
+                const remStr = r.remainder > 0 ? ' r ' + r.remainder : '';
+                const remKak = r.remainder > 0 ? ' r ' + kakStr(r.remainder) : '';
+                const nums = r.remainder > 0 ? [p[0], p[1], r.quotient, r.remainder] : [p[0], p[1], r.quotient];
+                const ops  = r.remainder > 0 ? [' \u00f7 ', ' = ', ' r '] : [' \u00f7 ', ' = '];
+                return {
+                    expr: p[0] + ' \u00f7 ' + p[1],
+                    kak: kakStr(p[0]) + ' \u00f7 ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak,
+                    dec: p[0] + ' \u00f7 ' + p[1] + ' = ' + r.quotient + remStr,
+                    nums,
+                    ops
+                };
+            });
+            document.getElementById('examples-div').innerHTML = buildExamplesTable(divExamples);
+
+            // Long division examples — rendered as step tables
+            const ldivExamples = [[400, 20], [8400, 20], [441, 21], [399, 19]];
+            let ldivHtml = '';
+            ldivExamples.forEach(function(p) {
+                const r = longDivide(p[0], p[1]);
+                const remStr = r.remainder > 0 ? ' remainder ' + r.remainder : '';
+                const remKak = r.remainder > 0 ? ' remainder ' + kakStr(r.remainder) : '';
+                const titleNums = r.remainder > 0 ? [p[0], p[1], r.quotient, r.remainder] : [p[0], p[1], r.quotient];
+                const titleOps  = r.remainder > 0 ? [' \u00f7 ', ' = ', ' r '] : [' \u00f7 ', ' = '];
+                ldivHtml += '<div class="ldiv-example">';
+                ldivHtml += '<div class="ldiv-header">';
+                ldivHtml += '<p class="ldiv-title">';
+                ldivHtml += kakStr(p[0]) + ' \u00f7 ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak;
+                ldivHtml += '<br><small>(' + p[0] + ' \u00f7 ' + p[1] + ' = ' + r.quotient + remStr + ')</small>';
+                ldivHtml += '</p>';
+                ldivHtml += '<div class="svg-cell ldiv-svg" data-nums=\'' + JSON.stringify(titleNums) + '\' data-ops=\'' + JSON.stringify(titleOps) + '\'>…</div>';
+                ldivHtml += '</div>';
+                ldivHtml += '<table class="long-division"><thead><tr>';
+                ldivHtml += '<th>Partial Dividend</th><th>Quotient Digit</th><th>\u00d7 Divisor</th><th>Remainder</th>';
+                ldivHtml += '</tr></thead><tbody>';
+                r.steps.forEach(function(step) {
+                    ldivHtml += '<tr>';
+                    ldivHtml += '<td>' + kakStr(step.partialDividend) + '<br><small>' + step.partialDividend + '</small></td>';
+                    ldivHtml += '<td>' + kakStr(step.quotientDigit) + '<br><small>' + step.quotientDigit + '</small></td>';
+                    ldivHtml += '<td>' + kakStr(step.product) + '<br><small>' + step.product + '</small></td>';
+                    ldivHtml += '<td>' + kakStr(step.remainder) + '<br><small>' + step.remainder + '</small></td>';
+                    ldivHtml += '</tr>';
+                });
+                ldivHtml += '</tbody></table></div>';
+            });
+            document.getElementById('examples-ldiv').innerHTML = ldivHtml;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-run all four calculators with their default values
+            calculate('add');
+            calculate('sub');
+            calculate('div');
+            calculate('ldiv');
+            // Render pre-computed examples
+            renderExamples();
+            // Fill SVG columns with coloured digit SVGs (async)
+            renderSVGCells();
+        });
+    </script>
   </body>
 </html>
