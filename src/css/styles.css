@@ -157,7 +157,48 @@ tr:nth-child(2) {
   margin-bottom: 2rem;
 }
 
+.ldiv-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
 .ldiv-title {
   margin-bottom: 0.4rem;
+}
+
+/* SVG expression cells in examples tables */
+.svg-cell {
+  vertical-align: middle;
+}
+
+.svg-expr {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.svg-op {
+  font-size: 1.1rem;
+  padding: 0 2px;
+  vertical-align: middle;
+}
+
+/* Coloured SVG glyphs rendered inline */
+.svg-kak {
+  display: inline-block;
+  height: 2em;
+  width: auto;
+  vertical-align: middle;
+}
+
+/* Long division SVG expression block */
+.ldiv-svg {
+  display: flex;
+  align-items: center;
+  min-height: 2.5em;
 }
 

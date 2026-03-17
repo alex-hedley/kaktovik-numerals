@@ -347,6 +347,81 @@
             return '<span class="kaktovik">' + numberToKaktovik(n) + '</span>';
         }
 
+        // === SVG coloured rendering helpers ===
+
+        // teal (#00a1a4) for pure multiples of 5 (5, 10, 15); purple (#9e2194) for all other non-zero digits
+        function digitColor(d) {
+            if (d === 0) return '#555';
+            return d % 5 === 0 ? '#00a1a4' : '#9e2194';
+        }
+
+        // Approximate pixel dimensions of each Kaktovik digit SVG (all share the same height)
+        const SVG_DIGIT_WIDTH = 34;
+        const SVG_DIGIT_HEIGHT = 53;
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+
+        const _svgCache = {};
+        async function fetchSVGText(d) {
+            if (_svgCache[d] !== undefined) return _svgCache[d];
+            const res = await fetch('images/digits/Kaktovik_digit_' + d + '.svg');
+            if (!res.ok) throw new Error('Failed to load SVG for digit ' + d);
+            _svgCache[d] = await res.text();
+            return _svgCache[d];
+        }
+
+        async function numberToColoredSVG(n) {
+            const digits = [];
+            if (n === 0) { digits.push(0); }
+            else { let x = n; while (x > 0) { digits.unshift(x % 20); x = Math.floor(x / 20); } }
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + (digits.length * SVG_DIGIT_WIDTH) + ' ' + SVG_DIGIT_HEIGHT);
+            svg.classList.add('svg-kak');
+            for (let i = 0; i < digits.length; i++) {
+                const d = digits[i];
+                const parsed = new DOMParser().parseFromString(await fetchSVGText(d), 'image/svg+xml');
+                const parseErr = parsed.querySelector('parsererror');
+                if (parseErr) throw new Error('SVG parse error for digit ' + d);
+                const g = document.createElementNS(SVG_NS, 'g');
+                g.setAttribute('transform', 'translate(' + (i * SVG_DIGIT_WIDTH) + ',0)');
+                const color = digitColor(d);
+                parsed.querySelectorAll('path').forEach(function(p) {
+                    const path = document.createElementNS(SVG_NS, 'path');
+                    path.setAttribute('d', p.getAttribute('d'));
+                    path.style.fill = color;
+                    path.style.stroke = color;
+                    g.appendChild(path);
+                });
+                svg.appendChild(g);
+            }
+            return svg;
+        }
+
+        // Fills every element with class svg-cell (data-nums / data-ops attributes) with coloured SVGs
+        async function renderSVGCells() {
+            const cells = Array.from(document.querySelectorAll('.svg-cell'));
+            for (const cell of cells) {
+                try {
+                    const nums = JSON.parse(cell.dataset.nums);
+                    const ops  = JSON.parse(cell.dataset.ops);
+                    const wrap = document.createElement('span');
+                    wrap.className = 'svg-expr';
+                    for (let i = 0; i < nums.length; i++) {
+                        if (i > 0) {
+                            const sp = document.createElement('span');
+                            sp.className = 'svg-op';
+                            sp.textContent = ops[i - 1];
+                            wrap.appendChild(sp);
+                        }
+                        wrap.appendChild(await numberToColoredSVG(nums[i]));
+                    }
+                    cell.innerHTML = '';
+                    cell.appendChild(wrap);
+                } catch (e) {
+                    cell.textContent = '';
+                }
+            }
+        }
+
         function calculate(op) {
             let a, b, result, html;
             try {
@@ -427,12 +502,13 @@
 
         function buildExamplesTable(rows) {
             let html = '<table class="examples-table"><thead><tr>';
-            html += '<th>Expression</th><th>Kaktovik</th><th>Decimal</th>';
+            html += '<th>Expression</th><th>Kaktovik (font)</th><th>Kaktovik (SVG)</th><th>Decimal</th>';
             html += '</tr></thead><tbody>';
             rows.forEach(function(row) {
                 html += '<tr>';
                 html += '<td class="expr-cell">' + row.expr + '</td>';
                 html += '<td>' + row.kak + '</td>';
+                html += '<td class="svg-cell" data-nums=\'' + JSON.stringify(row.nums) + '\' data-ops=\'' + JSON.stringify(row.ops) + '\'>…</td>';
                 html += '<td><small>' + row.dec + '</small></td>';
                 html += '</tr>';
             });
@@ -449,7 +525,9 @@
                 return {
                     expr: p[0] + ' + ' + p[1],
                     kak: kakStr(p[0]) + ' + ' + kakStr(p[1]) + ' = ' + kakStr(r),
-                    dec: p[0] + ' + ' + p[1] + ' = ' + r
+                    dec: p[0] + ' + ' + p[1] + ' = ' + r,
+                    nums: [p[0], p[1], r],
+                    ops: [' + ', ' = ']
                 };
             });
             document.getElementById('examples-add').innerHTML = buildExamplesTable(addExamples);
@@ -460,9 +538,11 @@
             ].map(function(p) {
                 const r = subtract(p[0], p[1]);
                 return {
-                    expr: p[0] + ' − ' + p[1],
-                    kak: kakStr(p[0]) + ' − ' + kakStr(p[1]) + ' = ' + kakStr(r),
-                    dec: p[0] + ' − ' + p[1] + ' = ' + r
+                    expr: p[0] + ' \u2212 ' + p[1],
+                    kak: kakStr(p[0]) + ' \u2212 ' + kakStr(p[1]) + ' = ' + kakStr(r),
+                    dec: p[0] + ' \u2212 ' + p[1] + ' = ' + r,
+                    nums: [p[0], p[1], r],
+                    ops: [' \u2212 ', ' = ']
                 };
             });
             document.getElementById('examples-sub').innerHTML = buildExamplesTable(subExamples);
@@ -474,10 +554,14 @@
                 const r = divide(p[0], p[1]);
                 const remStr = r.remainder > 0 ? ' r ' + r.remainder : '';
                 const remKak = r.remainder > 0 ? ' r ' + kakStr(r.remainder) : '';
+                const nums = r.remainder > 0 ? [p[0], p[1], r.quotient, r.remainder] : [p[0], p[1], r.quotient];
+                const ops  = r.remainder > 0 ? [' \u00f7 ', ' = ', ' r '] : [' \u00f7 ', ' = '];
                 return {
-                    expr: p[0] + ' ÷ ' + p[1],
-                    kak: kakStr(p[0]) + ' ÷ ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak,
-                    dec: p[0] + ' ÷ ' + p[1] + ' = ' + r.quotient + remStr
+                    expr: p[0] + ' \u00f7 ' + p[1],
+                    kak: kakStr(p[0]) + ' \u00f7 ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak,
+                    dec: p[0] + ' \u00f7 ' + p[1] + ' = ' + r.quotient + remStr,
+                    nums,
+                    ops
                 };
             });
             document.getElementById('examples-div').innerHTML = buildExamplesTable(divExamples);
@@ -489,13 +573,18 @@
                 const r = longDivide(p[0], p[1]);
                 const remStr = r.remainder > 0 ? ' remainder ' + r.remainder : '';
                 const remKak = r.remainder > 0 ? ' remainder ' + kakStr(r.remainder) : '';
+                const titleNums = r.remainder > 0 ? [p[0], p[1], r.quotient, r.remainder] : [p[0], p[1], r.quotient];
+                const titleOps  = r.remainder > 0 ? [' \u00f7 ', ' = ', ' r '] : [' \u00f7 ', ' = '];
                 ldivHtml += '<div class="ldiv-example">';
+                ldivHtml += '<div class="ldiv-header">';
                 ldivHtml += '<p class="ldiv-title">';
-                ldivHtml += kakStr(p[0]) + ' ÷ ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak;
-                ldivHtml += '<br><small>(' + p[0] + ' ÷ ' + p[1] + ' = ' + r.quotient + remStr + ')</small>';
+                ldivHtml += kakStr(p[0]) + ' \u00f7 ' + kakStr(p[1]) + ' = ' + kakStr(r.quotient) + remKak;
+                ldivHtml += '<br><small>(' + p[0] + ' \u00f7 ' + p[1] + ' = ' + r.quotient + remStr + ')</small>';
                 ldivHtml += '</p>';
+                ldivHtml += '<div class="svg-cell ldiv-svg" data-nums=\'' + JSON.stringify(titleNums) + '\' data-ops=\'' + JSON.stringify(titleOps) + '\'>…</div>';
+                ldivHtml += '</div>';
                 ldivHtml += '<table class="long-division"><thead><tr>';
-                ldivHtml += '<th>Partial Dividend</th><th>Quotient Digit</th><th>× Divisor</th><th>Remainder</th>';
+                ldivHtml += '<th>Partial Dividend</th><th>Quotient Digit</th><th>\u00d7 Divisor</th><th>Remainder</th>';
                 ldivHtml += '</tr></thead><tbody>';
                 r.steps.forEach(function(step) {
                     ldivHtml += '<tr>';
@@ -518,6 +607,8 @@
             calculate('ldiv');
             // Render pre-computed examples
             renderExamples();
+            // Fill SVG columns with coloured digit SVGs (async)
+            renderSVGCells();
         });
     </script>
   </body>
