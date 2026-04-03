@@ -20,6 +20,148 @@ tr:nth-child(2) {
   /* vertical-align: middle; */
 }
 
+/* ============================================
+   Number Picker
+   ============================================ */
+
+.nav-link {
+  display: inline-block;
+  color: #555;
+  text-decoration: none;
+  font-family: sans-serif;
+  margin-bottom: 12px;
+}
+
+.nav-link:hover {
+  color: #333;
+  text-decoration: underline;
+}
+
+.picker-description {
+  color: #555;
+  font-family: sans-serif;
+  margin-bottom: 8px;
+}
+
+/* Display area */
+.picker-display {
+  background: #f5f5f5;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  padding: 16px 24px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 100px;
+  flex-wrap: wrap;
+}
+
+.kaktovik-display {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.display-digit-wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.display-svg {
+  height: 70px;
+  width: auto;
+}
+
+.decimal-display {
+  font-size: 2.2em;
+  font-weight: bold;
+  color: #333;
+  min-width: 100px;
+  text-align: right;
+  font-family: sans-serif;
+}
+
+/* Control buttons */
+.picker-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.picker-btn {
+  padding: 9px 20px;
+  font-size: 1em;
+  cursor: pointer;
+  border: 2px solid #aaa;
+  border-radius: 6px;
+  background: #f0f0f0;
+  color: #333;
+  font-family: sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.picker-btn:hover {
+  background: #e0e0e0;
+  border-color: #888;
+}
+
+.picker-btn:active {
+  background: #d0d0d0;
+}
+
+/* Digit grid */
+.digit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.digit-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.digit-cell {
+  background: #e8e8e8;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: center;
+  min-width: 80px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: sans-serif;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.digit-cell:hover {
+  background: #d4d4d4;
+  border-color: #999;
+  transform: scale(1.05);
+}
+
+.digit-cell:active {
+  transform: scale(0.97);
+  background: #c8c8c8;
+}
+
+.digit-svg {
+  height: 55px;
+  width: auto;
+}
+
+.digit-label {
+  font-size: 0.75em;
+  color: #666;
+}
 /* Kaktovik numeral display */
 .kaktovik {
   font-family: "Unifont-Upper";
