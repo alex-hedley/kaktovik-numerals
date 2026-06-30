@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <meta name="description" content="Kaktovik Numerals - Interactive Number Picker" />
+    <meta name="keywords" content="kaktovik, numerals, base 20, number picker" />
+    <meta name="author" content="Alex Hedley" />
+
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="shortcut icon" href="favicon.ico" />
+
+    <title>Kaktovik Number Picker</title>
+  </head>
+  <body>
+    <!-- Begin page content -->
+    <main role="main" class="container">
+
+      <h1>Kaktovik Number Picker</h1>
+
+      <p class="picker-description">
+        Click the digits below to build a number in the base&#8209;20 Kaktovik system.
+        The Kaktovik notation and its decimal equivalent are shown in the display.
+      </p>
+
+      <a class="nav-link" href="index.html">&#8592; Back to Kaktovik Numerals</a>
+
+      <!-- Number display -->
+      <div class="picker-display" aria-live="polite" aria-label="Current number display">
+        <div id="kaktovik-display" class="kaktovik-display"></div>
+        <div id="decimal-display" class="decimal-display" aria-label="Decimal value">0</div>
+      </div>
+
+      <!-- Control buttons -->
+      <div class="picker-controls">
+        <button id="btn-backspace" class="picker-btn" aria-label="Remove last digit">
+          &#x232B; Backspace
+        </button>
+        <button id="btn-clear" class="picker-btn" aria-label="Clear all digits">
+          &#x2715; Clear
+        </button>
+      </div>
+
+      <!-- Digit grid: 4 rows × 5 columns (digits 0–19) -->
+      <div id="digit-grid" class="digit-grid" role="group" aria-label="Kaktovik digit selector">
+        <!-- Populated by picker.js -->
+      </div>
+
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span class="text-muted">Alex Hedley.</span>
+      </div>
+    </footer>
+
+    <script src="js/picker.js"></script>
+  </body>
+</html>
